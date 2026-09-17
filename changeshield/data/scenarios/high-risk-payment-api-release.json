@@ -1,0 +1,83 @@
+{
+  "scenario_id": "CS-K8S-001",
+  "scenario_name": "High-risk payment API Kubernetes release",
+  "environment": "production",
+  "change_id": "CHG-2026-0918-002",
+  "service": {
+    "name": "payment-api",
+    "classification": "business-critical",
+    "current_stable_version": "2.8.3",
+    "target_version": "2.8.4",
+    "peak_requests_per_minute": 18000
+  },
+  "release_context": {
+    "deployment_strategy": "rolling",
+    "staging_validation_completed": false,
+    "load_test_evidence_available": false,
+    "sre_approval": false,
+    "rollback_plan_provided": false,
+    "rollback_command": null,
+    "health_check_observation_minutes": 0
+  },
+  "deployment": {
+    "replicas": 3,
+    "strategy": {
+      "type": "RollingUpdate",
+      "max_surge": 1,
+      "max_unavailable": 3
+    },
+    "container": {
+      "name": "payment-api",
+      "image": "registry.example.com/payment-api:2.8.4",
+      "resources": {
+        "requests": {
+          "cpu": "100m",
+          "memory": "512Mi"
+        },
+        "limits": {
+          "cpu": "500m",
+          "memory": "768Mi"
+        }
+      },
+      "previous_resources": {
+        "requests": {
+          "cpu": "500m",
+          "memory": "512Mi"
+        },
+        "limits": {
+          "cpu": "1000m",
+          "memory": "768Mi"
+        }
+      },
+      "readiness_probe": null,
+      "liveness_probe": null
+    },
+    "hpa": {
+      "enabled": true,
+      "min_replicas": 1,
+      "max_replicas": 5,
+      "target_cpu_utilization_percent": 80
+    }
+  },
+  "expected_outcome": {
+    "decision": "BLOCK",
+    "risk_level": "HIGH",
+    "sre_approval_required": true,
+    "expected_policy_references": [
+      "K8S-PROD-02",
+      "K8S-PROD-03",
+      "K8S-PROD-04",
+      "K8S-PROD-05",
+      "K8S-PROD-08"
+    ],
+    "expected_findings": [
+      "CPU request reduced by 80 percent without load-test evidence",
+      "Readiness probe is missing",
+      "Liveness probe is missing",
+      "Rolling update permits all replicas to become unavailable",
+      "Rollback plan is missing",
+      "Staging validation is incomplete",
+      "SRE approval is missing"
+    ]
+  }
+}

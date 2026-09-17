@@ -1,0 +1,90 @@
+{
+  "tool_name": "analyze_kubernetes_release",
+  "analysis_mode": "read_only",
+  "scenario_id": "CS-K8S-001",
+  "change_id": "CHG-2026-0918-002",
+  "environment": "production",
+  "service": "payment-api",
+  "current_stable_version": "2.8.3",
+  "target_version": "2.8.4",
+  "risk_score": 100,
+  "risk_level": "HIGH",
+  "decision": "BLOCK",
+  "sre_approval_required": true,
+  "execution_permitted": false,
+  "policy_references": [
+    "K8S-PROD-02",
+    "K8S-PROD-03",
+    "K8S-PROD-04",
+    "K8S-PROD-05",
+    "K8S-PROD-08"
+  ],
+  "findings": [
+    {
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-03",
+      "title": "Production CPU request was reduced",
+      "evidence": "CPU request was reduced from 500m to 100m (80% reduction).",
+      "recommended_action": "Restore the approved CPU request or provide load-test evidence, staging validation, and SRE approval."
+    },
+    {
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-03",
+      "title": "Load-test evidence is missing",
+      "evidence": "CPU request was reduced but load_test_evidence_available=false.",
+      "recommended_action": "Run representative load tests before reducing production CPU requests."
+    },
+    {
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-03",
+      "title": "Staging validation is incomplete",
+      "evidence": "The release context declares staging_validation_completed=false.",
+      "recommended_action": "Validate the release in staging and capture resource usage, error rate, and latency evidence."
+    },
+    {
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-02",
+      "title": "Readiness probe is missing",
+      "evidence": "The deployment has no readiness probe, so traffic may be sent to an unready application instance.",
+      "recommended_action": "Add a readiness probe that verifies the application can safely receive production traffic."
+    },
+    {
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-02",
+      "title": "Liveness probe is missing",
+      "evidence": "The deployment has no liveness probe, so failed workloads may remain running without automatic recovery.",
+      "recommended_action": "Add a liveness probe that detects unrecoverable application failure."
+    },
+    {
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-04",
+      "title": "Rolling update can make all replicas unavailable",
+      "evidence": "replicas=3 and max_unavailable=3, allowing full service outage.",
+      "recommended_action": "Set max_unavailable below the replica count and use a controlled rolling update or canary rollout."
+    },
+    {
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-05",
+      "title": "Rollback plan is missing",
+      "evidence": "rollback_plan_provided=false and no rollback command is available.",
+      "recommended_action": "Document the stable version, rollback command, and health-check observation period before deployment."
+    },
+    {
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-08",
+      "title": "Required SRE approval is missing",
+      "evidence": "The change targets production and sre_approval=false.",
+      "recommended_action": "Obtain explicit approval from an authorised SRE, platform engineer, or change approver before production execution."
+    }
+  ],
+  "recommended_actions": [
+    "Restore the approved CPU request or provide load-test evidence, staging validation, and SRE approval.",
+    "Run representative load tests before reducing production CPU requests.",
+    "Validate the release in staging and capture resource usage, error rate, and latency evidence.",
+    "Add a readiness probe that verifies the application can safely receive production traffic.",
+    "Add a liveness probe that detects unrecoverable application failure.",
+    "Set max_unavailable below the replica count and use a controlled rolling update or canary rollout.",
+    "Document the stable version, rollback command, and health-check observation period before deployment.",
+    "Obtain explicit approval from an authorised SRE, platform engineer, or change approver before production execution."
+  ]
+}
