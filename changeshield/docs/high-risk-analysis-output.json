@@ -1,0 +1,64 @@
+{
+  "tool_name": "analyze_database_migration",
+  "analysis_mode": "read_only",
+  "scenario_id": "CS-DB-001",
+  "change_id": "CHG-2026-0918-001",
+  "environment": "production",
+  "database_engine": "PostgreSQL",
+  "target_table": "payments.transactions",
+  "risk_score": 100,
+  "risk_level": "HIGH",
+  "decision": "BLOCK",
+  "dba_approval_required": true,
+  "execution_permitted": false,
+  "policy_references": [
+    "DB-PROD-01",
+    "DB-PROD-02",
+    "DB-PROD-05",
+    "DB-PROD-07"
+  ],
+  "findings": [
+    {
+      "severity": "HIGH",
+      "policy_reference": "DB-PROD-02",
+      "title": "Non-concurrent index on high-write table",
+      "evidence": "The migration creates an index without CONCURRENTLY on payments.transactions.",
+      "recommended_action": "Use CREATE INDEX CONCURRENTLY and validate the execution plan in staging."
+    },
+    {
+      "severity": "HIGH",
+      "policy_reference": "DB-PROD-01",
+      "title": "Rollback plan is missing",
+      "evidence": "The scenario declares rollback_provided=false and provides no rollback script.",
+      "recommended_action": "Attach a tested rollback or documented compensating action before production approval."
+    },
+    {
+      "severity": "MEDIUM",
+      "policy_reference": "DB-PROD-05",
+      "title": "Database connection pool is above the review threshold",
+      "evidence": "Connection pool usage is 86%, above the 80% DBA-review threshold.",
+      "recommended_action": "Review database capacity with a DBA and avoid concurrent high-impact changes during peak load."
+    },
+    {
+      "severity": "MEDIUM",
+      "policy_reference": "DB-PROD-02",
+      "title": "Staging validation is incomplete",
+      "evidence": "The release context states that representative staging validation has not been completed.",
+      "recommended_action": "Test the migration using representative data and capture runtime, locking, and rollback evidence."
+    },
+    {
+      "severity": "HIGH",
+      "policy_reference": "DB-PROD-07",
+      "title": "Required DBA approval is missing",
+      "evidence": "The change targets production and dba_approval=false.",
+      "recommended_action": "Obtain explicit approval from an authorised DBA or change approver before any production execution."
+    }
+  ],
+  "recommended_actions": [
+    "Use CREATE INDEX CONCURRENTLY and validate the execution plan in staging.",
+    "Attach a tested rollback or documented compensating action before production approval.",
+    "Review database capacity with a DBA and avoid concurrent high-impact changes during peak load.",
+    "Test the migration using representative data and capture runtime, locking, and rollback evidence.",
+    "Obtain explicit approval from an authorised DBA or change approver before any production execution."
+  ]
+}

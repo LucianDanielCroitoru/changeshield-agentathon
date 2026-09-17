@@ -1,0 +1,58 @@
+{
+  "scenario_id": "CS-DB-001",
+  "scenario_name": "High-risk payment index migration",
+  "environment": "production",
+  "change_id": "CHG-2026-0918-001",
+  "service": "payment-api",
+  "database": {
+    "engine": "PostgreSQL",
+    "database_name": "payments_prod",
+    "connection_pool_usage_percent": 86,
+    "active_transactions": 184,
+    "table_metadata": {
+      "schema": "payments",
+      "table": "transactions",
+      "classification": "business-critical",
+      "write_profile": "high-write",
+      "estimated_rows": 48000000,
+      "peak_transactions_per_minute": 12500
+    }
+  },
+  "migration": {
+    "migration_id": "20260918_add_transaction_customer_index",
+    "framework": "Flyway",
+    "transactional": true,
+    "rollback_provided": false,
+    "rollback_script": null,
+    "sql": "CREATE INDEX idx_transactions_customer_id ON payments.transactions(customer_id);"
+  },
+  "release_context": {
+    "deployment_strategy": "rolling",
+    "staging_validation_completed": false,
+    "maintenance_window_approved": false,
+    "dba_approval": false,
+    "change_owner": "payment-platform-team"
+  },
+  "expected_outcome": {
+    "decision": "BLOCK",
+    "risk_level": "HIGH",
+    "dba_approval_required": true,
+    "expected_policy_references": [
+      "DB-PROD-01",
+      "DB-PROD-02",
+      "DB-PROD-03",
+      "DB-PROD-04",
+      "DB-PROD-05",
+      "DB-PROD-07"
+    ],
+    "expected_findings": [
+      "CREATE INDEX is not concurrent",
+      "The target table is high-write and business-critical",
+      "The migration is configured as transactional",
+      "No rollback plan is provided",
+      "Connection pool usage is above 80 percent",
+      "Staging validation is not complete",
+      "DBA approval is missing"
+    ]
+  }
+}
