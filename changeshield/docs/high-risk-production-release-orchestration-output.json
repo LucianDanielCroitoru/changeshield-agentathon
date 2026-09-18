@@ -1,0 +1,459 @@
+{
+  "tool_name": "analyze_production_release",
+  "analysis_mode": "read_only",
+  "scenario_id": "CS-REL-001",
+  "change_id": "CHG-2026-0918-004",
+  "environment": "production",
+  "release_name": "payment-platform-production-release",
+  "execution_requested": true,
+  "consolidated_risk_score": 100,
+  "risk_level": "HIGH",
+  "decision": "BLOCK",
+  "execution_permitted": false,
+  "blocking_specialists": [
+    "database",
+    "kubernetes",
+    "iac"
+  ],
+  "specialist_results": [
+    {
+      "tool_name": "analyze_database_migration",
+      "analysis_mode": "read_only",
+      "scenario_id": "CS-DB-001",
+      "change_id": "CHG-2026-0918-001",
+      "environment": "production",
+      "database_engine": "PostgreSQL",
+      "target_table": "payments.transactions",
+      "risk_score": 100,
+      "risk_level": "HIGH",
+      "decision": "BLOCK",
+      "dba_approval_required": true,
+      "execution_permitted": false,
+      "policy_references": [
+        "DB-PROD-01",
+        "DB-PROD-02",
+        "DB-PROD-05",
+        "DB-PROD-07"
+      ],
+      "findings": [
+        {
+          "severity": "HIGH",
+          "policy_reference": "DB-PROD-02",
+          "title": "Non-concurrent index on high-write table",
+          "evidence": "The migration creates an index without CONCURRENTLY on payments.transactions.",
+          "recommended_action": "Use CREATE INDEX CONCURRENTLY and validate the execution plan in staging."
+        },
+        {
+          "severity": "HIGH",
+          "policy_reference": "DB-PROD-01",
+          "title": "Rollback plan is missing",
+          "evidence": "The scenario declares rollback_provided=false and provides no rollback script.",
+          "recommended_action": "Attach a tested rollback or documented compensating action before production approval."
+        },
+        {
+          "severity": "MEDIUM",
+          "policy_reference": "DB-PROD-05",
+          "title": "Database connection pool is above the review threshold",
+          "evidence": "Connection pool usage is 86%, above the 80% DBA-review threshold.",
+          "recommended_action": "Review database capacity with a DBA and avoid concurrent high-impact changes during peak load."
+        },
+        {
+          "severity": "MEDIUM",
+          "policy_reference": "DB-PROD-02",
+          "title": "Staging validation is incomplete",
+          "evidence": "The release context states that representative staging validation has not been completed.",
+          "recommended_action": "Test the migration using representative data and capture runtime, locking, and rollback evidence."
+        },
+        {
+          "severity": "HIGH",
+          "policy_reference": "DB-PROD-07",
+          "title": "Required DBA approval is missing",
+          "evidence": "The change targets production and dba_approval=false.",
+          "recommended_action": "Obtain explicit approval from an authorised DBA or change approver before any production execution."
+        }
+      ],
+      "recommended_actions": [
+        "Use CREATE INDEX CONCURRENTLY and validate the execution plan in staging.",
+        "Attach a tested rollback or documented compensating action before production approval.",
+        "Review database capacity with a DBA and avoid concurrent high-impact changes during peak load.",
+        "Test the migration using representative data and capture runtime, locking, and rollback evidence.",
+        "Obtain explicit approval from an authorised DBA or change approver before any production execution."
+      ],
+      "specialist": "database"
+    },
+    {
+      "tool_name": "analyze_kubernetes_release",
+      "analysis_mode": "read_only",
+      "scenario_id": "CS-K8S-001",
+      "change_id": "CHG-2026-0918-002",
+      "environment": "production",
+      "service": "payment-api",
+      "current_stable_version": "2.8.3",
+      "target_version": "2.8.4",
+      "risk_score": 100,
+      "risk_level": "HIGH",
+      "decision": "BLOCK",
+      "sre_approval_required": true,
+      "execution_permitted": false,
+      "policy_references": [
+        "K8S-PROD-02",
+        "K8S-PROD-03",
+        "K8S-PROD-04",
+        "K8S-PROD-05",
+        "K8S-PROD-08"
+      ],
+      "findings": [
+        {
+          "severity": "HIGH",
+          "policy_reference": "K8S-PROD-03",
+          "title": "Production CPU request was reduced",
+          "evidence": "CPU request was reduced from 500m to 100m (80% reduction).",
+          "recommended_action": "Restore the approved CPU request or provide load-test evidence, staging validation, and SRE approval."
+        },
+        {
+          "severity": "HIGH",
+          "policy_reference": "K8S-PROD-03",
+          "title": "Load-test evidence is missing",
+          "evidence": "CPU request was reduced but load_test_evidence_available=false.",
+          "recommended_action": "Run representative load tests before reducing production CPU requests."
+        },
+        {
+          "severity": "HIGH",
+          "policy_reference": "K8S-PROD-03",
+          "title": "Staging validation is incomplete",
+          "evidence": "The release context declares staging_validation_completed=false.",
+          "recommended_action": "Validate the release in staging and capture resource usage, error rate, and latency evidence."
+        },
+        {
+          "severity": "HIGH",
+          "policy_reference": "K8S-PROD-02",
+          "title": "Readiness probe is missing",
+          "evidence": "The deployment has no readiness probe, so traffic may be sent to an unready application instance.",
+          "recommended_action": "Add a readiness probe that verifies the application can safely receive production traffic."
+        },
+        {
+          "severity": "HIGH",
+          "policy_reference": "K8S-PROD-02",
+          "title": "Liveness probe is missing",
+          "evidence": "The deployment has no liveness probe, so failed workloads may remain running without automatic recovery.",
+          "recommended_action": "Add a liveness probe that detects unrecoverable application failure."
+        },
+        {
+          "severity": "HIGH",
+          "policy_reference": "K8S-PROD-04",
+          "title": "Rolling update can make all replicas unavailable",
+          "evidence": "replicas=3 and max_unavailable=3, allowing full service outage.",
+          "recommended_action": "Set max_unavailable below the replica count and use a controlled rolling update or canary rollout."
+        },
+        {
+          "severity": "HIGH",
+          "policy_reference": "K8S-PROD-05",
+          "title": "Rollback plan is missing",
+          "evidence": "rollback_plan_provided=false and no rollback command is available.",
+          "recommended_action": "Document the stable version, rollback command, and health-check observation period before deployment."
+        },
+        {
+          "severity": "HIGH",
+          "policy_reference": "K8S-PROD-08",
+          "title": "Required SRE approval is missing",
+          "evidence": "The change targets production and sre_approval=false.",
+          "recommended_action": "Obtain explicit approval from an authorised SRE, platform engineer, or change approver before production execution."
+        }
+      ],
+      "recommended_actions": [
+        "Restore the approved CPU request or provide load-test evidence, staging validation, and SRE approval.",
+        "Run representative load tests before reducing production CPU requests.",
+        "Validate the release in staging and capture resource usage, error rate, and latency evidence.",
+        "Add a readiness probe that verifies the application can safely receive production traffic.",
+        "Add a liveness probe that detects unrecoverable application failure.",
+        "Set max_unavailable below the replica count and use a controlled rolling update or canary rollout.",
+        "Document the stable version, rollback command, and health-check observation period before deployment.",
+        "Obtain explicit approval from an authorised SRE, platform engineer, or change approver before production execution."
+      ],
+      "specialist": "kubernetes"
+    },
+    {
+      "tool_name": "analyze_iac_governance",
+      "analysis_mode": "read_only",
+      "scenario_id": "CS-IAC-001",
+      "change_id": "CHG-2026-0918-003",
+      "environment": "production",
+      "service": "payment-platform",
+      "change_type": "terraform_apply",
+      "risk_score": 100,
+      "risk_level": "HIGH",
+      "decision": "BLOCK",
+      "security_approval_required": true,
+      "execution_permitted": false,
+      "policy_references": [
+        "IAC-PROD-01",
+        "IAC-PROD-02",
+        "IAC-PROD-03",
+        "IAC-PROD-04",
+        "IAC-PROD-05",
+        "IAC-PROD-06",
+        "IAC-PROD-07"
+      ],
+      "findings": [
+        {
+          "policy_reference": "IAC-PROD-01",
+          "severity": "HIGH",
+          "title": "Anonymous public data access is enabled",
+          "evidence": "azurerm_storage_account.paymentreceiptprod sets allow_blob_public_access=true.",
+          "recommendation": "Disable anonymous public access or provide an approved security exception with compensating controls."
+        },
+        {
+          "policy_reference": "IAC-PROD-02",
+          "severity": "HIGH",
+          "title": "Public network access allows all networks",
+          "evidence": "azurerm_storage_account.paymentreceiptprod enables public network access with network_default_action=Allow.",
+          "recommendation": "Disable public network access and use a private endpoint or an approved restricted firewall allowlist."
+        },
+        {
+          "policy_reference": "IAC-PROD-03",
+          "severity": "HIGH",
+          "title": "Minimum TLS version is below TLS 1.2",
+          "evidence": "azurerm_storage_account.paymentreceiptprod sets minimum_tls_version='TLS1_0'.",
+          "recommendation": "Set the minimum TLS version to TLS1_2 or later."
+        },
+        {
+          "policy_reference": "IAC-PROD-04",
+          "severity": "HIGH",
+          "title": "Required customer-managed encryption key is absent",
+          "evidence": "azurerm_storage_account.paymentreceiptprod requires a customer-managed key but none is configured.",
+          "recommendation": "Configure an approved customer-managed key and record the required key-management approval."
+        },
+        {
+          "policy_reference": "IAC-PROD-05",
+          "severity": "MEDIUM",
+          "title": "Mandatory production resource tags are missing",
+          "evidence": "azurerm_storage_account.paymentreceiptprod is missing tags: CostCenter, Owner.",
+          "recommendation": "Add Environment, Owner, and CostCenter tags before production execution."
+        },
+        {
+          "policy_reference": "IAC-PROD-06",
+          "severity": "HIGH",
+          "title": "Required security approval is missing",
+          "evidence": "security_approval_present=false for this production IaC change.",
+          "recommendation": "Obtain explicit approval from an authorised security or platform approver before any Terraform apply."
+        },
+        {
+          "policy_reference": "IAC-PROD-07",
+          "severity": "HIGH",
+          "title": "Rollback and recovery plan is missing",
+          "evidence": "rollback_plan_present=false for a change affecting data exposure, networking, or encryption.",
+          "recommendation": "Document the previous secure configuration, rollback steps, owner, validation checks, and observation period."
+        }
+      ],
+      "safety_boundary": {
+        "terraform_executed": false,
+        "azure_api_called": false,
+        "infrastructure_modified": false,
+        "live_subscription_inspected": false
+      },
+      "specialist": "iac"
+    }
+  ],
+  "orchestration_findings": [
+    {
+      "policy_reference": "ORCH-PROD-02",
+      "severity": "HIGH",
+      "title": "Consolidated production change approval is missing",
+      "evidence": "change_approver_present=false.",
+      "recommendation": "Obtain explicit approval from the accountable production change approver after all specialist remediation is complete."
+    },
+    {
+      "policy_reference": "ORCH-PROD-03",
+      "severity": "HIGH",
+      "title": "Consolidated release rollback plan is missing",
+      "evidence": "consolidated_rollback_plan_present=false.",
+      "recommendation": "Document an integrated rollback plan covering database, Kubernetes, and IaC changes, including owners and validation."
+    }
+  ],
+  "all_findings": [
+    {
+      "specialist": "database",
+      "severity": "HIGH",
+      "policy_reference": "DB-PROD-02",
+      "title": "Non-concurrent index on high-write table",
+      "evidence": "The migration creates an index without CONCURRENTLY on payments.transactions.",
+      "recommended_action": "Use CREATE INDEX CONCURRENTLY and validate the execution plan in staging."
+    },
+    {
+      "specialist": "database",
+      "severity": "HIGH",
+      "policy_reference": "DB-PROD-01",
+      "title": "Rollback plan is missing",
+      "evidence": "The scenario declares rollback_provided=false and provides no rollback script.",
+      "recommended_action": "Attach a tested rollback or documented compensating action before production approval."
+    },
+    {
+      "specialist": "database",
+      "severity": "MEDIUM",
+      "policy_reference": "DB-PROD-05",
+      "title": "Database connection pool is above the review threshold",
+      "evidence": "Connection pool usage is 86%, above the 80% DBA-review threshold.",
+      "recommended_action": "Review database capacity with a DBA and avoid concurrent high-impact changes during peak load."
+    },
+    {
+      "specialist": "database",
+      "severity": "MEDIUM",
+      "policy_reference": "DB-PROD-02",
+      "title": "Staging validation is incomplete",
+      "evidence": "The release context states that representative staging validation has not been completed.",
+      "recommended_action": "Test the migration using representative data and capture runtime, locking, and rollback evidence."
+    },
+    {
+      "specialist": "database",
+      "severity": "HIGH",
+      "policy_reference": "DB-PROD-07",
+      "title": "Required DBA approval is missing",
+      "evidence": "The change targets production and dba_approval=false.",
+      "recommended_action": "Obtain explicit approval from an authorised DBA or change approver before any production execution."
+    },
+    {
+      "specialist": "kubernetes",
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-03",
+      "title": "Production CPU request was reduced",
+      "evidence": "CPU request was reduced from 500m to 100m (80% reduction).",
+      "recommended_action": "Restore the approved CPU request or provide load-test evidence, staging validation, and SRE approval."
+    },
+    {
+      "specialist": "kubernetes",
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-03",
+      "title": "Load-test evidence is missing",
+      "evidence": "CPU request was reduced but load_test_evidence_available=false.",
+      "recommended_action": "Run representative load tests before reducing production CPU requests."
+    },
+    {
+      "specialist": "kubernetes",
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-03",
+      "title": "Staging validation is incomplete",
+      "evidence": "The release context declares staging_validation_completed=false.",
+      "recommended_action": "Validate the release in staging and capture resource usage, error rate, and latency evidence."
+    },
+    {
+      "specialist": "kubernetes",
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-02",
+      "title": "Readiness probe is missing",
+      "evidence": "The deployment has no readiness probe, so traffic may be sent to an unready application instance.",
+      "recommended_action": "Add a readiness probe that verifies the application can safely receive production traffic."
+    },
+    {
+      "specialist": "kubernetes",
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-02",
+      "title": "Liveness probe is missing",
+      "evidence": "The deployment has no liveness probe, so failed workloads may remain running without automatic recovery.",
+      "recommended_action": "Add a liveness probe that detects unrecoverable application failure."
+    },
+    {
+      "specialist": "kubernetes",
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-04",
+      "title": "Rolling update can make all replicas unavailable",
+      "evidence": "replicas=3 and max_unavailable=3, allowing full service outage.",
+      "recommended_action": "Set max_unavailable below the replica count and use a controlled rolling update or canary rollout."
+    },
+    {
+      "specialist": "kubernetes",
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-05",
+      "title": "Rollback plan is missing",
+      "evidence": "rollback_plan_provided=false and no rollback command is available.",
+      "recommended_action": "Document the stable version, rollback command, and health-check observation period before deployment."
+    },
+    {
+      "specialist": "kubernetes",
+      "severity": "HIGH",
+      "policy_reference": "K8S-PROD-08",
+      "title": "Required SRE approval is missing",
+      "evidence": "The change targets production and sre_approval=false.",
+      "recommended_action": "Obtain explicit approval from an authorised SRE, platform engineer, or change approver before production execution."
+    },
+    {
+      "specialist": "iac",
+      "policy_reference": "IAC-PROD-01",
+      "severity": "HIGH",
+      "title": "Anonymous public data access is enabled",
+      "evidence": "azurerm_storage_account.paymentreceiptprod sets allow_blob_public_access=true.",
+      "recommendation": "Disable anonymous public access or provide an approved security exception with compensating controls."
+    },
+    {
+      "specialist": "iac",
+      "policy_reference": "IAC-PROD-02",
+      "severity": "HIGH",
+      "title": "Public network access allows all networks",
+      "evidence": "azurerm_storage_account.paymentreceiptprod enables public network access with network_default_action=Allow.",
+      "recommendation": "Disable public network access and use a private endpoint or an approved restricted firewall allowlist."
+    },
+    {
+      "specialist": "iac",
+      "policy_reference": "IAC-PROD-03",
+      "severity": "HIGH",
+      "title": "Minimum TLS version is below TLS 1.2",
+      "evidence": "azurerm_storage_account.paymentreceiptprod sets minimum_tls_version='TLS1_0'.",
+      "recommendation": "Set the minimum TLS version to TLS1_2 or later."
+    },
+    {
+      "specialist": "iac",
+      "policy_reference": "IAC-PROD-04",
+      "severity": "HIGH",
+      "title": "Required customer-managed encryption key is absent",
+      "evidence": "azurerm_storage_account.paymentreceiptprod requires a customer-managed key but none is configured.",
+      "recommendation": "Configure an approved customer-managed key and record the required key-management approval."
+    },
+    {
+      "specialist": "iac",
+      "policy_reference": "IAC-PROD-05",
+      "severity": "MEDIUM",
+      "title": "Mandatory production resource tags are missing",
+      "evidence": "azurerm_storage_account.paymentreceiptprod is missing tags: CostCenter, Owner.",
+      "recommendation": "Add Environment, Owner, and CostCenter tags before production execution."
+    },
+    {
+      "specialist": "iac",
+      "policy_reference": "IAC-PROD-06",
+      "severity": "HIGH",
+      "title": "Required security approval is missing",
+      "evidence": "security_approval_present=false for this production IaC change.",
+      "recommendation": "Obtain explicit approval from an authorised security or platform approver before any Terraform apply."
+    },
+    {
+      "specialist": "iac",
+      "policy_reference": "IAC-PROD-07",
+      "severity": "HIGH",
+      "title": "Rollback and recovery plan is missing",
+      "evidence": "rollback_plan_present=false for a change affecting data exposure, networking, or encryption.",
+      "recommendation": "Document the previous secure configuration, rollback steps, owner, validation checks, and observation period."
+    },
+    {
+      "specialist": "orchestrator",
+      "policy_reference": "ORCH-PROD-02",
+      "severity": "HIGH",
+      "title": "Consolidated production change approval is missing",
+      "evidence": "change_approver_present=false.",
+      "recommendation": "Obtain explicit approval from the accountable production change approver after all specialist remediation is complete."
+    },
+    {
+      "specialist": "orchestrator",
+      "policy_reference": "ORCH-PROD-03",
+      "severity": "HIGH",
+      "title": "Consolidated release rollback plan is missing",
+      "evidence": "consolidated_rollback_plan_present=false.",
+      "recommendation": "Document an integrated rollback plan covering database, Kubernetes, and IaC changes, including owners and validation."
+    }
+  ],
+  "safety_boundary": {
+    "database_contacted": false,
+    "kubernetes_cluster_contacted": false,
+    "terraform_executed": false,
+    "azure_api_called": false,
+    "infrastructure_modified": false,
+    "production_execution_performed": false
+  }
+}

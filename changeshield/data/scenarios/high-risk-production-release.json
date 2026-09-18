@@ -1,0 +1,17 @@
+{
+  "scenario_id": "CS-REL-001",
+  "change_id": "CHG-2026-0918-004",
+  "environment": "production",
+  "release_name": "payment-platform-production-release",
+  "analysis_mode": "read_only",
+  "specialist_scenarios": {
+    "database": "CS-DB-001",
+    "kubernetes": "CS-K8S-001",
+    "iac": "CS-IAC-001"
+  },
+  "release_controls": {
+    "change_approver_present": false,
+    "consolidated_rollback_plan_present": false,
+    "execution_requested": true
+  }
+}
