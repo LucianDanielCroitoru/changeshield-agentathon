@@ -1,81 +1,140 @@
-<img width="990" height="150" alt="Microsoft Agent-a-thon_banner_WEB_990x150" src="https://github.com/user-attachments/assets/5f550061-077d-421c-bba2-4a5820e72fad" />
+# ChangeShield
 
-# Build and Scale AI Agents with Microsoft Foundry
-## The Level 3: Architect learning path 
- 
-Welcome to the hands-on lab experience where ideas turn into real, enterprise-ready solutions. This is the most advanced of the three agent-building learning paths. Where the Explorer path builds your first no-code agent and the Maker path automates work with low-code tools, this path is for developers, engineers, and architects who want complete control over models, orchestration, and operations.
+> **Read-only, fail-closed governance for high-risk production releases.**
 
-In this lab, you’ll build, monitor, evaluate, and orchestrate AI agents using the Microsoft Foundry SDK. You’ll follow a guided, scenario-based experience designed to help you move from concept to a working, enterprise-ready multi-agent system.
- 
-By the end, you won’t just understand how agents work — you’ll have built one you can trace, evaluate, and deploy.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Microsoft Foundry](https://img.shields.io/badge/Microsoft%20Foundry-Agent%20Platform-0078D4?style=flat-square&logo=microsoftazure&logoColor=white)](https://ai.azure.com/)
+[![Azure](https://img.shields.io/badge/Azure-Foundry%20Project-0078D4?style=flat-square&logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
+[![Model](https://img.shields.io/badge/Model-gpt--5.4--mini-412991?style=flat-square)](https://ai.azure.com/)
+[![Foundry Agents](https://img.shields.io/badge/Foundry%20Agents-4-6F42C1?style=flat-square)](changeshield/README.md#four-foundry-agents)
+[![Safety](https://img.shields.io/badge/Safety-Fail--Closed%20%7C%20Read--Only-2EA44F?style=flat-square)](changeshield/README.md#safety-model)
+[![Status](https://img.shields.io/badge/Status-Hackathon%20Prototype-F59E0B?style=flat-square)](changeshield/README.md#scope-and-next-steps)
 
-All challenge instructions are also available at [microsoft.github.io/FrontierWeekHack](https://microsoft.github.io/FrontierWeekHack/).
+ChangeShield is a multi-agent governance system that assesses high-risk production releases across database migrations, Kubernetes releases, and Infrastructure as Code (IaC). Deterministic policy tools produce authoritative findings; Microsoft Foundry agents generate structured reports and observable traces.
 
-## What You'll Learn
+> [!IMPORTANT]
+> ChangeShield is advisory and read-only. It never executes SQL, `kubectl`, Helm, Terraform, Azure APIs, or production changes.
 
-This lab walks you through the full lifecycle of building production-ready AI agents with [Microsoft Foundry](https://learn.microsoft.com/azure/ai-foundry/):
+## Demonstrated result
 
-- **Agent design** — Create purpose-built agents with system prompts, tools, and domain-specific data
-- **Observability** — Instrument agents with OpenTelemetry-based GenAI tracing via Application Insights
-- **Quality evaluation** — Run LLM-as-judge evaluations to systematically measure agent output quality
-- **Multi-agent orchestration** — Wire agents into automated workflows using the Python SDK and the Foundry portal
+```text
+Scenario: CS-REL-001
+Release: payment-platform-production-release
 
-This is a **code-first hackathon** — you'll write and run Python throughout. However, several challenges also have you interact with the **Microsoft Foundry portal** to deploy models, explore traces, review evaluations, and build workflows visually. Expect to move between your IDE and the portal regularly.
+Decision: BLOCK
+Risk score: 100/100
+Risk level: HIGH
+Blocking specialists: database, kubernetes, iac
+Execution permitted: false
+```
 
+## Architecture
 
-## Choose Your Scenario
+```mermaid
+flowchart LR
+    Scenario[Controlled JSON scenario]
 
-All paths teach the same Foundry concepts — pick the one that resonates with you the most:
+    DB[Database policy tool]
+    K8s[Kubernetes policy tool]
+    IaC[IaC policy tool]
 
-| Scenario | Description | Start Here |
-|----------|-------------|------------|
-| 🏭 **Factory** | Detect machine anomalies and diagnose faults at TireForge Industries | [Factory Lab](./factory/README.md) |
-| 📋 **Claims** | Triage incoming claims and recommend actions at ClaimSight Insurance | [Claims Lab](./claims/README.md) |
-| 📞 **Call Center** | Classify call intents and advise resolutions at NovaTel Communications | [Call Center Lab](./callcenter/README.md) |
+    Orchestrator[Fail-closed release orchestrator]
+    Foundry[Microsoft Foundry agents]
+    Report[Read-only release report]
+    Human[Human remediation and approval]
 
-All scenarios follow the same 5-challenge structure:
+    Scenario --> DB
+    Scenario --> K8s
+    Scenario --> IaC
 
-| # | Challenge | Duration | What You'll Learn |
-|---|-----------|----------|-------------------|
-| 0 | **Setup** | 20 min | Provision Microsoft Foundry, deploy a model, verify auth |
-| 1 | **Build Agents** | 35 min | Create two agents with tools and system prompts |
-| 2 | **Monitor** | 20 min | Enable GenAI tracing with Application Insights |
-| 3 | **Evaluate** | 25 min | Run LLM-as-judge evaluations against test datasets |
-| 4 | **Workflow** | 20 min | Orchestrate agents in a multi-step pipeline |
+    DB --> Orchestrator
+    K8s --> Orchestrator
+    IaC --> Orchestrator
 
-## Prerequisites
+    Orchestrator --> Foundry --> Report --> Human
+```
 
-- **Azure subscription** with **Contributor** and **Foundry User** access
-- A **GitHub account**
-- **Python 3.10+** installed locally (pre-installed when using Codespaces)
-- **Azure CLI** (`az`) installed (pre-installed when using Codespaces)
+## What is included
 
-## Ready to Expand Your Knowledge?
+| Capability | Implementation |
+|---|---|
+| Production domains | Database migrations, Kubernetes releases, IaC governance |
+| Policy enforcement | 3 deterministic, local, read-only Python tools |
+| Foundry agents | 4 versioned agents using `gpt-5.4-mini` |
+| Decision rule | Any specialist `BLOCK` forces consolidated `BLOCK` |
+| Demonstration | `CS-REL-001` with 22 consolidated findings |
+| Observability | Foundry traces with duration, tokens, version, and estimated cost |
 
-### 1. Put Your Skills to the Test at the Microsoft Agent-a-Thon!
-You’ve built production-grade agents — now bring them to a live, hands-on build experience. The Microsoft Agent-a-Thon is where you apply everything from this path, get real-time support as you build, and compete for recognition and prizes. Register at [Microsoft Agent-a-Thon](https://www.microsoft.com/en-us/events/local-events/microsoft-agent-a-thon).
+## Explore ChangeShield
 
-### 2. Join the Tour! 
+### Full documentation
 
-<img width="4400" height="687" alt="banner" src="agentichacks.jpg" />
+➡️ **[Open the complete ChangeShield documentation](changeshield/README.md)**
 
-Prefer to build alongside experts in the room? Spend a full day exploring advanced use cases, hands-on builds, and expert-led sessions designed to turn ideas into real business impact. Find the event nearest you on [EMEA Agentic AI Hacks - Microsoft Pulse](https://pulse.microsoft.com/en/build-ai-hacks-agentic-ai/).
+The full documentation includes:
 
-### 3. Go deeper with the docs
+- Detailed architecture and Mermaid diagram
+- Four Foundry agents and three policy engines
+- Fail-closed safety model
+- Local quick start and Foundry runbook
+- Demonstration scenario and remediation
+- Screenshots and trace evidence
+- Limitations and next steps
 
-- [What is Microsoft Foundry?](https://learn.microsoft.com/azure/foundry/what-is-foundry)
-- [Foundry Agent Service overview](https://learn.microsoft.com/azure/foundry/agents/overview)
-- [Trace your agents with Microsoft Foundry](https://learn.microsoft.com/azure/foundry/observability/how-to/trace-agent-setup)
-- [Evaluate agentic workflows](https://learn.microsoft.com/azure/foundry/observability/how-to/evaluate-agent)
-- [azure-ai-projects SDK Reference](https://learn.microsoft.com/python/api/azure-ai-projects/)
+### Key evidence
 
-### 4. Keep learning on Microsoft Learn
+| Evidence | Link |
+|---|---|
+| Foundry model deployment | [View screenshot](changeshield/docs/screenshots/02-foundry-model-deployment.png) |
+| Orchestrator configuration | [View screenshot](changeshield/docs/screenshots/10-release-orchestrator-playground.png) |
+| Orchestrator traces | [View screenshot](changeshield/docs/screenshots/11-release-orchestrator-traces.png) |
+| Consolidated local output | [View JSON](changeshield/docs/high-risk-production-release-orchestration-output.json) |
+| Foundry report | [View report](changeshield/docs/production-release-orchestrator-foundry-output.md) |
 
-- [Develop an AI agent with Microsoft Foundry Agent Service](https://learn.microsoft.com/training/modules/develop-ai-agent-azure/) — 55 min module
-- [Build agent-driven workflows using Microsoft Foundry](https://learn.microsoft.com/training/modules/build-agent-workflows-microsoft-foundry/) — 1 hr module
-- [Analyze and debug your generative AI app with tracing](https://learn.microsoft.com/training/modules/tracing-generative-ai-app/) — 1 hr module
-- [Evaluate generative AI performance in Microsoft Foundry portal](https://learn.microsoft.com/training/modules/evaluate-models-azure-ai-studio/) — 38 min module
-- [Monitor your generative AI application](https://learn.microsoft.com/training/modules/monitor-generative-ai-app/) — 1 hr module
-- [Develop generative AI apps in Azure](https://learn.microsoft.com/training/paths/develop-generative-ai-apps/) — learning path
-- [Monitor AI workloads on Azure](https://learn.microsoft.com/training/paths/monitor-ai-workloads-on-azure/) — learning path
-- [Operationalize AI responsibly with Azure AI Foundry](https://learn.microsoft.com/training/paths/operationalize-ai-responsibly/) — learning path
+## Repository layout
+
+```text
+.
+├── changeshield/       # ChangeShield implementation and full documentation
+│   └── README.md       # Complete project README
+├── factory/            # Microsoft Foundry hackathon setup and provisioning
+└── README.md           # Repository landing page
+```
+
+## Safety boundary
+
+The demo uses controlled, simulated scenario data. No live database, Kubernetes cluster, Terraform backend, Azure subscription, or production deployment system is contacted.
+
+Any future execution capability must remain separate from policy assessment, require explicit human approval, and remain unable to bypass deterministic `BLOCK` decisions.
+
+## Quick start
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install azure-ai-projects azure-identity python-dotenv openai
+
+python - <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path("changeshield/src").resolve()))
+
+from agents.release_orchestrator import analyze_production_release
+
+result = analyze_production_release("CS-REL-001")
+
+print("Decision:", result["decision"])
+print("Risk score:", f'{result["consolidated_risk_score"]}/100')
+print("Blocking specialists:", ", ".join(result["blocking_specialists"]))
+print("Execution permitted:", result["execution_permitted"])
+PY
+```
+
+For the complete runbook and all evidence, see the **[full ChangeShield README](changeshield/README.md)**.
+
+---
+
+## Original hackathon setup
+
+The [`factory/`](factory/) directory contains Microsoft Foundry setup and provisioning materials inherited from the original hackathon repository. The ChangeShield implementation and project-specific documentation live under [`changeshield/`](changeshield/).
