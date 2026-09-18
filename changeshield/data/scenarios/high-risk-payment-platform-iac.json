@@ -1,0 +1,37 @@
+{
+  "scenario_id": "CS-IAC-001",
+  "change_id": "CHG-2026-0918-003",
+  "environment": "production",
+  "service": "payment-platform",
+  "change_type": "terraform_apply",
+  "analysis_mode": "read_only",
+  "terraform": {
+    "workspace": "production",
+    "plan_reviewed": true,
+    "apply_executed": false
+  },
+  "resources": [
+    {
+      "resource_type": "azurerm_storage_account",
+      "name": "paymentreceiptprod",
+      "data_classification": "sensitive",
+      "public_network_access_enabled": true,
+      "network_default_action": "Allow",
+      "allow_blob_public_access": true,
+      "minimum_tls_version": "TLS1_0",
+      "customer_managed_key_required": true,
+      "customer_managed_key_configured": false,
+      "private_endpoint_configured": false,
+      "tags": {
+        "Environment": "production"
+      }
+    }
+  ],
+  "change_controls": {
+    "security_approval_present": false,
+    "security_exception_reference": null,
+    "rollback_plan_present": false,
+    "rollback_plan": null,
+    "validation_plan_present": false
+  }
+}

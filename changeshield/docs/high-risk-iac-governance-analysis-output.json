@@ -1,0 +1,80 @@
+{
+  "tool_name": "analyze_iac_governance",
+  "analysis_mode": "read_only",
+  "scenario_id": "CS-IAC-001",
+  "change_id": "CHG-2026-0918-003",
+  "environment": "production",
+  "service": "payment-platform",
+  "change_type": "terraform_apply",
+  "risk_score": 100,
+  "risk_level": "HIGH",
+  "decision": "BLOCK",
+  "security_approval_required": true,
+  "execution_permitted": false,
+  "policy_references": [
+    "IAC-PROD-01",
+    "IAC-PROD-02",
+    "IAC-PROD-03",
+    "IAC-PROD-04",
+    "IAC-PROD-05",
+    "IAC-PROD-06",
+    "IAC-PROD-07"
+  ],
+  "findings": [
+    {
+      "policy_reference": "IAC-PROD-01",
+      "severity": "HIGH",
+      "title": "Anonymous public data access is enabled",
+      "evidence": "azurerm_storage_account.paymentreceiptprod sets allow_blob_public_access=true.",
+      "recommendation": "Disable anonymous public access or provide an approved security exception with compensating controls."
+    },
+    {
+      "policy_reference": "IAC-PROD-02",
+      "severity": "HIGH",
+      "title": "Public network access allows all networks",
+      "evidence": "azurerm_storage_account.paymentreceiptprod enables public network access with network_default_action=Allow.",
+      "recommendation": "Disable public network access and use a private endpoint or an approved restricted firewall allowlist."
+    },
+    {
+      "policy_reference": "IAC-PROD-03",
+      "severity": "HIGH",
+      "title": "Minimum TLS version is below TLS 1.2",
+      "evidence": "azurerm_storage_account.paymentreceiptprod sets minimum_tls_version='TLS1_0'.",
+      "recommendation": "Set the minimum TLS version to TLS1_2 or later."
+    },
+    {
+      "policy_reference": "IAC-PROD-04",
+      "severity": "HIGH",
+      "title": "Required customer-managed encryption key is absent",
+      "evidence": "azurerm_storage_account.paymentreceiptprod requires a customer-managed key but none is configured.",
+      "recommendation": "Configure an approved customer-managed key and record the required key-management approval."
+    },
+    {
+      "policy_reference": "IAC-PROD-05",
+      "severity": "MEDIUM",
+      "title": "Mandatory production resource tags are missing",
+      "evidence": "azurerm_storage_account.paymentreceiptprod is missing tags: CostCenter, Owner.",
+      "recommendation": "Add Environment, Owner, and CostCenter tags before production execution."
+    },
+    {
+      "policy_reference": "IAC-PROD-06",
+      "severity": "HIGH",
+      "title": "Required security approval is missing",
+      "evidence": "security_approval_present=false for this production IaC change.",
+      "recommendation": "Obtain explicit approval from an authorised security or platform approver before any Terraform apply."
+    },
+    {
+      "policy_reference": "IAC-PROD-07",
+      "severity": "HIGH",
+      "title": "Rollback and recovery plan is missing",
+      "evidence": "rollback_plan_present=false for a change affecting data exposure, networking, or encryption.",
+      "recommendation": "Document the previous secure configuration, rollback steps, owner, validation checks, and observation period."
+    }
+  ],
+  "safety_boundary": {
+    "terraform_executed": false,
+    "azure_api_called": false,
+    "infrastructure_modified": false,
+    "live_subscription_inspected": false
+  }
+}
