@@ -1,87 +1,169 @@
 # ChangeShield
 
-**ChangeShield** is a read-only, fail-closed multi-agent governance system for high-risk production releases.
+> **Read-only, fail-closed governance for high-risk production releases.**
 
-It evaluates proposed changes across three operational domains before a human authorises production execution:
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Microsoft Foundry](https://img.shields.io/badge/Microsoft%20Foundry-Agent%20Platform-0078D4?style=flat-square&logo=microsoftazure&logoColor=white)](https://ai.azure.com/)
+[![Azure](https://img.shields.io/badge/Azure-Foundry%20Project-0078D4?style=flat-square&logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
+[![Model](https://img.shields.io/badge/Model-gpt--5.4--mini-412991?style=flat-square)](https://ai.azure.com/)
+[![Agents](https://img.shields.io/badge/Foundry%20Agents-4-6F42C1?style=flat-square)](#four-foundry-agents)
+[![Policy Tools](https://img.shields.io/badge/Policy%20Tools-3%20Deterministic-2EA44F?style=flat-square)](#policy-engines)
+[![Safety](https://img.shields.io/badge/Safety-Fail--Closed%20%7C%20Read--Only-2EA44F?style=flat-square)](#safety-model)
+[![Prototype](https://img.shields.io/badge/Status-Hackathon%20Prototype-F59E0B?style=flat-square)](#scope-and-next-steps)
 
-- Database migrations
-- Kubernetes releases
-- Infrastructure as Code (IaC)
+ChangeShield is a multi-agent governance system that evaluates high-risk production releases before humans authorise execution. It combines deterministic policy engines for database migrations, Kubernetes releases, and Infrastructure as Code (IaC), then produces an evidence-based consolidated decision through Microsoft Foundry.
 
-ChangeShield does not deploy applications, apply Terraform, run database migrations, or modify cloud infrastructure. It produces deterministic policy findings, required remediation, and an evidence-based release decision.
+> [!IMPORTANT]
+> ChangeShield is an **advisory, read-only** system. It does not execute SQL, deployment commands, Terraform, Azure APIs, or changes in a production environment.
 
-## The problem
+---
 
-A production release frequently combines multiple dependent changes:
+## At a glance
 
-- A database migration can lock a high-write table, exceed operational capacity, or lack a rollback path.
-- A Kubernetes rollout can reduce capacity, omit health probes, or allow all replicas to become unavailable.
-- An IaC change can expose sensitive data publicly, weaken transport security, or bypass required encryption and approval controls.
+| Capability | Demonstrated implementation |
+|---|---|
+| Release domains | Database migrations, Kubernetes releases, IaC governance |
+| Deterministic enforcement | 3 local, read-only Python policy engines |
+| Microsoft Foundry | 4 versioned agents using `gpt-5.4-mini` |
+| Decision rule | Fail-closed: any specialist `BLOCK` produces release `BLOCK` |
+| End-to-end scenario | `CS-REL-001` → `BLOCK` at risk score `100/100` |
+| Consolidated evidence | 22 findings across three domains and release controls |
+| Production execution | Not permitted in the demonstrated scenario |
+| Observability | Foundry traces with token, duration, version, and cost evidence |
 
-These risks are often reviewed separately. A release may appear safe to one domain reviewer while still being unsafe overall.
+---
 
-ChangeShield addresses this by combining domain-specific policy engines with a fail-closed production release coordinator.
+## Why ChangeShield?
 
-## Solution overview
+High-risk production releases are rarely isolated. A single change may include a database migration, a Kubernetes rollout, and Terraform changes to cloud infrastructure.
 
-ChangeShield separates deterministic policy enforcement from AI-generated reporting.
+Each domain is typically reviewed through a separate workflow:
+
+- A database reviewer focuses on locking, capacity, rollback, and validation.
+- An SRE focuses on workload health, capacity, probes, and rollout availability.
+- A security or platform reviewer focuses on public exposure, network access, TLS, encryption, ownership, and approvals.
+
+A release can look acceptable in one domain while still being unsafe overall.
+
+ChangeShield makes combined release risk explicit. It runs domain-specific policy checks, preserves their findings as authoritative evidence, and applies a simple safety invariant:
 
 ```text
-                         Controlled JSON scenarios
-                                   |
-          +------------------------+------------------------+
-          |                        |                        |
-          v                        v                        v
-+----------------------+ +----------------------+ +----------------------+
-| Database Migration   | | Kubernetes Release   | | IaC Governance       |
-| Safety Tool          | | Safety Tool          | | Tool                 |
-|                      | |                      | |                      |
-| Deterministic policy | | Deterministic policy | | Deterministic policy |
-+----------+-----------+ +----------+-----------+ +----------+-----------+
-           |                        |                        |
-           +------------------------+------------------------+
-                                    |
-                                    v
-                 +--------------------------------------+
-                 | Production Release Orchestrator       |
-                 | Fail-closed: any BLOCK => BLOCK      |
-                 +------------------+-------------------+
-                                    |
-                                    v
-               +--------------------------------------------+
-               | Microsoft Foundry agent reporting/tracing   |
-               | Human-readable evidence and remediation    |
-               +--------------------------------------------+
+Any specialist BLOCK  =>  consolidated release BLOCK
 ```
 
-The local policy tools are authoritative for:
+The LLM writes a structured, operator-friendly report. It does not have authority to bypass deterministic policy decisions.
 
-- Findings and evidence
-- Risk score and risk level
-- Required human approvals
-- Release decision
-- Execution permission
+---
 
-Microsoft Foundry agents call those tools and transform the deterministic output into structured reports. The language model cannot turn a tool decision from `BLOCK` into `APPROVE`.
+## Architecture
 
-## Microsoft Foundry implementation
+```mermaid
+flowchart TD
+    Dev[Release engineer or change approver]
+    Scenario[Controlled JSON release scenario<br/>CS-REL-001]
 
-ChangeShield provisions four versioned Microsoft Foundry agents, all using the `gpt-5.4-mini` model deployment.
+    subgraph Local["Local read-only policy layer"]
+        direction TB
 
-| Agent | Role | Deterministic tool |
+        DBPolicy[Database production policy]
+        K8sPolicy[Kubernetes production policy]
+        IaCPolicy[IaC production governance policy]
+
+        DBTool[Database Migration Safety Tool<br/>analyze_migration]
+        K8sTool[Kubernetes Release Safety Tool<br/>analyze_kubernetes_release]
+        IaCTool[IaC Governance Tool<br/>analyze_iac_governance]
+
+        OrchestratorTool[Production Release Orchestrator Tool<br/>analyze_production_release<br/>fail-closed]
+
+        DBPolicy --> DBTool
+        K8sPolicy --> K8sTool
+        IaCPolicy --> IaCTool
+
+        DBTool --> OrchestratorTool
+        K8sTool --> OrchestratorTool
+        IaCTool --> OrchestratorTool
+    end
+
+    subgraph Foundry["Microsoft Foundry"]
+        direction TB
+
+        DBAgent[Database Migration Safety Agent]
+        K8sAgent[Kubernetes Release Safety Agent]
+        IaCAgent[IaC Governance Agent]
+        ReleaseAgent[Production Release Orchestrator Agent<br/>gpt-5.4-mini]
+        Traces[Foundry traces<br/>tokens, duration, cost, version]
+
+        DBAgent --> Traces
+        K8sAgent --> Traces
+        IaCAgent --> Traces
+        ReleaseAgent --> Traces
+    end
+
+    Report[Read-only release assessment<br/>BLOCK, REVIEW, or APPROVE]
+    Human[Human remediation and approval]
+    NoExecution[No automated production execution]
+
+    Dev --> Scenario
+
+    Scenario --> DBTool
+    Scenario --> K8sTool
+    Scenario --> IaCTool
+    Scenario --> OrchestratorTool
+
+    Scenario -. individual scenario assessment .-> DBAgent
+    Scenario -. individual scenario assessment .-> K8sAgent
+    Scenario -. individual scenario assessment .-> IaCAgent
+
+    OrchestratorTool --> ReleaseAgent
+    ReleaseAgent --> Report
+    Report --> Human
+    Human --> NoExecution
+```
+
+> **Design principle:** deterministic tools decide, Foundry agents explain, and humans approve and execute separately.
+
+---
+
+## Four Foundry agents
+
+All four agents are provisioned in Microsoft Foundry as versioned Prompt agents using the `gpt-5.4-mini` deployment.
+
+| Foundry agent | Responsibility | Authoritative deterministic tool |
 |---|---|---|
-| `changeshield-database-migration-safety-agent` | Assesses PostgreSQL production migration risk | `analyze_migration` |
-| `changeshield-kubernetes-release-safety-agent` | Assesses Kubernetes production release risk | `analyze_kubernetes_release` |
-| `changeshield-iac-governance-agent` | Assesses Terraform/IaC production governance risk | `analyze_iac_governance` |
-| `changeshield-production-release-orchestrator` | Consolidates specialist results into a release verdict | `analyze_production_release` |
+| `changeshield-database-migration-safety-agent` | Reviews PostgreSQL migration safety for production | `analyze_migration` |
+| `changeshield-kubernetes-release-safety-agent` | Reviews Kubernetes production-release safety | `analyze_kubernetes_release` |
+| `changeshield-iac-governance-agent` | Reviews Terraform/IaC security and governance controls | `analyze_iac_governance` |
+| `changeshield-production-release-orchestrator` | Consolidates specialist results into one release decision | `analyze_production_release` |
 
-For the consolidated demonstration, the orchestrator invokes the same deterministic local policy engines used by the specialist agents. This keeps enforcement reproducible, efficient, and independent of model judgment.
+For the consolidated release demonstration, the orchestrator invokes the same local deterministic policy engines used by the domain agents. This makes enforcement reproducible and keeps the final verdict independent of LLM judgment.
 
-## Safety and decision model
+### Production Release Orchestrator
 
-### Fail-closed rule
+![Production Release Orchestrator in Microsoft Foundry](docs/screenshots/10-release-orchestrator-playground.png)
 
-A release is blocked if any specialist returns `BLOCK`, or if required release-level controls are missing.
+The orchestrator is configured with the deterministic `analyze_production_release` function tool. It aggregates all specialist assessments and applies the mandatory fail-closed rule before generating a human-readable report.
+
+---
+
+## Policy engines
+
+Each domain has a dedicated local policy engine and a Markdown policy document under [`data/policies/`](data/policies/).
+
+| Domain | Tool | Examples of blocking conditions |
+|---|---|---|
+| Database migration | `database_migration_safety.py` | Non-concurrent index on a high-write table, rollback absent, incomplete staging validation, high connection-pool use, DBA approval absent |
+| Kubernetes release | `kubernetes_release_safety.py` | Unsafe CPU reduction, missing load tests, absent readiness/liveness probes, unsafe rollout availability, rollback or SRE approval absent |
+| IaC governance | `iac_governance.py` | Anonymous blob access, unrestricted public networking, TLS below 1.2, customer-managed key absent, missing tags, Security approval, or rollback plan |
+
+The deterministic tool output—not the model—is authoritative for findings, risk scores, policy references, required approvals, and decision status.
+
+---
+
+## Safety model
+
+### Fail-closed decisions
+
+A consolidated production release is blocked whenever any specialist blocks, or whenever required release-level controls are missing.
 
 ```text
 Database BLOCK
@@ -94,52 +176,45 @@ Missing consolidated production approval
       OR
 Missing integrated rollback plan
       =
-Consolidated release BLOCK
+Consolidated BLOCK
 ```
 
-The orchestrator never overrides, dilutes, or reinterprets a specialist `BLOCK`.
+The orchestrator may summarize a `BLOCK`, but it must never override, dilute, reinterpret, or convert it into `APPROVE`.
 
 ### Read-only boundary
 
-ChangeShield is an advisory governance system. It does not:
+ChangeShield does **not**:
 
-- Execute SQL, database migrations, or connect to a production database
-- Run `kubectl`, Helm, rollout, restart, rollback, or health-check commands
-- Run `terraform plan`, `terraform apply`, `terraform destroy`, or Terraform imports
-- Access Azure Resource Manager, Azure APIs, live subscriptions, or Terraform backends
-- Modify databases, Kubernetes clusters, cloud resources, or infrastructure
-- Fabricate approvals, exceptions, validation results, telemetry, or remediation evidence
-- Authorise a production change without deterministic policy approval and human review
+- Connect to production databases or execute SQL and migrations
+- Run `kubectl`, Helm, deployment, rollout, restart, rollback, or health-check commands
+- Run `terraform plan`, `terraform apply`, `terraform destroy`, import, or backend operations
+- Call Azure Resource Manager, Azure APIs, or inspect a live subscription
+- Change infrastructure, deploy workloads, or modify cloud resources
+- Invent approvals, security exceptions, capacity evidence, telemetry, test results, or remediation completion
+- Authorise production execution
 
-Every report labels the assessment as read-only. Production execution remains a human-controlled activity after all remediation and required approvals are complete.
+Production execution remains a human-controlled action after all blocking findings are remediated and required approvals are obtained.
 
-## Specialist policy coverage
+---
 
-| Domain | Blocking examples evaluated |
-|---|---|
-| Database migration | Non-concurrent index creation on a high-write table, missing rollback plan, incomplete staging validation, high connection-pool usage, missing DBA approval |
-| Kubernetes release | Unsafe CPU-request reduction, missing load-test evidence, incomplete staging validation, missing readiness/liveness probes, unsafe `max_unavailable`, missing SRE approval |
-| IaC governance | Anonymous blob access, unrestricted public network access, TLS below 1.2, missing customer-managed key, missing ownership tags, missing Security approval, missing rollback plan |
+## Demonstrated release
 
-The policy documents are stored in [`data/policies/`](data/policies/). Controlled scenario inputs are stored in [`data/scenarios/`](data/scenarios/).
-
-## Demonstration scenario
-
-`CS-REL-001` models a high-risk production release named:
+The end-to-end scenario, `CS-REL-001`, models a high-risk production release:
 
 ```text
 payment-platform-production-release
 ```
 
-It consolidates three deliberately unsafe specialist scenarios:
+It consolidates three intentionally unsafe specialist scenarios.
 
-| Domain | Scenario | Result |
-|---|---|---|
-| Database | `CS-DB-001` | `BLOCK` |
-| Kubernetes | `CS-K8S-001` | `BLOCK` |
-| IaC | `CS-IAC-001` | `BLOCK` |
+| Domain | Specialist scenario | Decision | Highlights |
+|---|---|---:|---|
+| Database | `CS-DB-001` | `BLOCK` | Non-concurrent index on `payments.transactions`, no rollback plan, 86% connection-pool use, incomplete staging validation, no DBA approval |
+| Kubernetes | `CS-K8S-001` | `BLOCK` | CPU request reduced `500m → 100m`, no probes, unsafe `max_unavailable=3` for 3 replicas, no rollback plan, no SRE approval |
+| IaC | `CS-IAC-001` | `BLOCK` | Public blob access, allow-all public networking, `TLS1_0`, no customer-managed key, missing tags/approval/rollback |
+| Orchestrator | `CS-REL-001` | `BLOCK` | Missing consolidated change approval and integrated cross-domain rollback plan |
 
-The consolidated deterministic decision is:
+### Consolidated result
 
 ```text
 Decision: BLOCK
@@ -148,42 +223,29 @@ Risk level: HIGH
 Execution requested: true
 Execution permitted: false
 Blocking specialists: database, kubernetes, iac
+All findings: 22
 ```
 
-The local orchestration assessment produced **22 findings**:
+### Why the release was blocked
 
-- 5 database migration findings
-- 8 Kubernetes release findings
-- 7 IaC governance findings
-- 2 release-level orchestration control gaps
+The release combines risks that can independently cause severe operational or security impact:
 
-The Foundry orchestrator report required remediation across all three domains and explicitly prevented production execution.
+- The database migration can introduce locking or performance regression on a high-write payments table.
+- The Kubernetes release can route traffic to unhealthy workloads or make all replicas unavailable during rollout.
+- The IaC change can expose sensitive storage data publicly and weaken network and encryption protections.
+- Missing domain approvals and an integrated rollback plan make safe execution and recovery ungoverned.
 
-## Evidence highlights
+The correct outcome is not “proceed carefully.” It is **BLOCK** until evidence, remediation, approvals, and rollback coverage are complete.
 
-### Database migration
+---
 
-The database specialist blocked the release because the proposed migration included a non-concurrent index on high-write table `payments.transactions`, lacked rollback documentation, had connection-pool usage of 86%, had incomplete staging validation, and lacked required DBA approval.
-
-### Kubernetes release
-
-The Kubernetes specialist blocked the release because CPU requests were reduced from `500m` to `100m` without load-test evidence, readiness and liveness probes were absent, `max_unavailable=3` with three replicas could make all replicas unavailable, rollback planning was absent, and SRE approval was missing.
-
-### IaC governance
-
-The IaC specialist blocked the release because the proposed storage account allowed anonymous blob access and unrestricted public networking, used `TLS1_0`, lacked the required customer-managed key, omitted `Owner` and `CostCenter` tags, and had no Security approval or rollback/recovery plan.
-
-### Consolidated decision
-
-The orchestrator retained all specialist blocks and also identified missing consolidated production approval and an integrated rollback plan spanning database, Kubernetes, and IaC changes.
-
-## Run locally
+## Local quick start
 
 ### Prerequisites
 
-- Python 3.10 or later
+- Python 3.10+
 - A Python virtual environment
-- Dependencies for the optional Foundry agent wrappers
+- Packages used by the optional Foundry agent wrappers
 
 ```bash
 python -m venv .venv
@@ -192,7 +254,9 @@ source .venv/bin/activate
 pip install azure-ai-projects azure-identity python-dotenv openai
 ```
 
-### Run deterministic specialist tools
+### Run individual deterministic policy checks
+
+These commands use only controlled local JSON scenario files. They do not require Foundry credentials or cloud access.
 
 ```bash
 python changeshield/src/tools/database_migration_safety.py \
@@ -205,9 +269,9 @@ python changeshield/src/tools/iac_governance.py \
   changeshield/data/scenarios/high-risk-payment-platform-iac.json
 ```
 
-### Run consolidated orchestration locally
+### Run local consolidated orchestration
 
-This command invokes all three local policy engines. It does not require Foundry, Azure access, a Kubernetes cluster, a database, or Terraform.
+This invokes all three policy engines in-process and produces a deterministic release result.
 
 ```bash
 python - <<'PY'
@@ -238,18 +302,22 @@ All findings: 22
 Execution permitted: False
 ```
 
-## Run with Microsoft Foundry
+---
 
-Foundry is optional for deterministic local validation. It is used to provision versioned agents, call local function tools, generate structured reports, and collect execution traces.
+## Microsoft Foundry runbook
 
-Create a local `factory/.env` file. Do not commit it.
+Foundry is optional for deterministic local policy validation. It is used to provision versioned agents, invoke local function tools, generate structured reports, and capture execution traces.
+
+### Configure the local environment
+
+Create `factory/.env` locally. Never commit it.
 
 ```text
 PROJECT_CONNECTION_STRING=<your-foundry-project-connection-string>
 MODEL_DEPLOYMENT_NAME=gpt-5.4-mini
 ```
 
-Run an individual specialist agent:
+### Run specialist agents
 
 ```bash
 python changeshield/src/agents/database_migration_agent.py CS-DB-001
@@ -259,56 +327,102 @@ python changeshield/src/agents/kubernetes_release_agent.py CS-K8S-001
 python changeshield/src/agents/iac_governance_agent.py CS-IAC-001
 ```
 
-Run the consolidated orchestrator:
+### Run the orchestrator
 
 ```bash
 python changeshield/src/agents/release_orchestrator.py CS-REL-001
 ```
 
-The orchestrator calls `analyze_production_release`, which invokes the three deterministic policy engines in-process. It does not connect to production systems or execute production actions.
+The orchestrator calls `analyze_production_release`, which invokes the three local policy engines in-process. It does not contact production systems or execute production actions.
 
-## Microsoft Foundry evidence
+---
+
+## Screenshots and observability
+
+Sensitive subscription and connection information was removed before publication.
 
 ### Azure and model deployment
 
-| Evidence | Description |
-|---|---|
-| [Azure resource group](docs/screenshots/01-azure-resource-group.png) | Foundry, Foundry project, Application Insights, and Log Analytics resources |
-| [Model deployment](docs/screenshots/02-foundry-model-deployment.png) | `gpt-5.4-mini` deployment with `Succeeded` status |
-| [Model playground verification](docs/screenshots/03-foundry-model-playground-verification.png) | Successful Foundry model response |
+#### Azure resources
 
-### Agent and trace evidence
+![Azure resource group](docs/screenshots/01-azure-resource-group.png)
 
-| Agent | Playground | Traces |
-|---|---|---|
-| Database Migration Safety | [Configuration](docs/screenshots/04-database-agent-playground.png) | [Completed traces](docs/screenshots/05-database-agent-traces.png) |
-| Kubernetes Release Safety | [Configuration](docs/screenshots/06-kubernetes-agent-playground.png) | [Completed traces](docs/screenshots/07-kubernetes-agent-traces.png) |
-| IaC Governance | [Configuration](docs/screenshots/08-iac-governance-agent-playground.png) | [Completed traces](docs/screenshots/09-iac-governance-agent-traces.png) |
-| Production Release Orchestrator | [Configuration](docs/screenshots/10-release-orchestrator-playground.png) | [Completed traces](docs/screenshots/11-release-orchestrator-traces.png) |
+The Azure resource group contains the Foundry resource, Foundry project, Application Insights, and Log Analytics workspace used for this prototype.
 
-### Recorded trace costs
+#### Model deployment
 
-The Foundry trace screenshots show successful tool and report phases.
+![Microsoft Foundry model deployment](docs/screenshots/02-foundry-model-deployment.png)
+
+The `gpt-5.4-mini` deployment completed with status `Succeeded`.
+
+#### Model playground verification
+
+![Microsoft Foundry model playground verification](docs/screenshots/03-foundry-model-playground-verification.png)
+
+The model playground returned a successful deployment-verification response.
+
+### Foundry orchestrator trace
+
+![Production Release Orchestrator traces](docs/screenshots/11-release-orchestrator-traces.png)
+
+The trace view records two completed phases: local tool invocation and final structured-report generation.
+
+| Trace phase | Duration | Input tokens | Output tokens | Estimated cost |
+|---|---:|---:|---:|---:|
+| Tool invocation | 0.848 s | 488 | 26 | €0.00010 |
+| Consolidated report | 4.278 s | 4,807 | 731 | €0.003 |
+| Total demonstrated orchestrator run | — | — | — | ~€0.0031 |
+
+### Specialist trace costs
 
 | Agent | Demonstrated approximate cost |
 |---|---:|
-| Kubernetes Release Safety Agent | €0.0021 |
-| IaC Governance Agent | €0.0031 |
-| Production Release Orchestrator | €0.0031 |
+| Kubernetes Release Safety Agent | ~€0.0021 |
+| IaC Governance Agent | ~€0.0031 |
+| Production Release Orchestrator | ~€0.0031 |
 
-Costs are trace estimates from the demonstrated runs and vary with model pricing, token usage, and deployment configuration.
+Costs are trace estimates from the demonstrated runs. Actual cost varies with token usage, model pricing, and deployment configuration.
 
-Additional textual evidence is stored in [`docs/`](docs/):
+<details>
+<summary><strong>View all specialist agent screenshots</strong></summary>
 
-- `high-risk-analysis-output.json`
-- `high-risk-kubernetes-analysis-output.json`
-- `high-risk-iac-governance-analysis-output.json`
-- `high-risk-production-release-orchestration-output.json`
-- `kubernetes-agent-foundry-output.md`
-- `iac-governance-agent-foundry-output.md`
-- `production-release-orchestrator-foundry-output.md`
+### Database Migration Safety Agent
 
-## Repository structure
+![Database Migration Safety Agent](docs/screenshots/04-database-agent-playground.png)
+
+![Database Migration Safety Agent traces](docs/screenshots/05-database-agent-traces.png)
+
+### Kubernetes Release Safety Agent
+
+![Kubernetes Release Safety Agent](docs/screenshots/06-kubernetes-agent-playground.png)
+
+![Kubernetes Release Safety Agent traces](docs/screenshots/07-kubernetes-agent-traces.png)
+
+### IaC Governance Agent
+
+![IaC Governance Agent](docs/screenshots/08-iac-governance-agent-playground.png)
+
+![IaC Governance Agent traces](docs/screenshots/09-iac-governance-agent-traces.png)
+
+</details>
+
+### Reproducible evidence
+
+The [`docs/`](docs/) directory includes local policy output and recorded Foundry reports:
+
+```text
+high-risk-analysis-output.json
+high-risk-kubernetes-analysis-output.json
+high-risk-iac-governance-analysis-output.json
+high-risk-production-release-orchestration-output.json
+kubernetes-agent-foundry-output.md
+iac-governance-agent-foundry-output.md
+production-release-orchestrator-foundry-output.md
+```
+
+---
+
+## Repository map
 
 ```text
 changeshield/
@@ -342,21 +456,25 @@ changeshield/
 └── README.md
 ```
 
-## Limitations and next steps
+---
 
-This implementation intentionally uses controlled, simulated scenario data. It is a governance and decision-support prototype, not a production deployment controller.
+## Scope and next steps
 
-Potential next steps include:
+This repository is a governance and decision-support prototype. It intentionally uses controlled, simulated scenario data and never performs production deployment actions.
 
-- Parse real Terraform plans, Kubernetes manifests, and database migration diffs.
-- Add CI/CD pull-request and release-pipeline integration.
-- Add signed, versioned policy-as-code packs.
-- Add least-privilege read-only integrations for approved inventory, telemetry, and change-management systems.
-- Add role-based human approvals, expiring exceptions, and audit retention.
-- Add evaluation datasets for policy accuracy, false positives, regressions, and report quality.
-- Validate remediation evidence before allowing reassessment.
-- Add a controlled human-in-the-loop execution workflow that remains separate from the policy assessment layer.
+Potential next steps:
+
+- Parse real database migration diffs, Terraform plans, and Kubernetes manifests
+- Integrate with pull requests, change-management tickets, and CI/CD release gates
+- Add signed and versioned policy-as-code packs
+- Add least-privilege, read-only inventory and telemetry integrations
+- Add role-based approvals, expiring security exceptions, and durable audit retention
+- Add formal datasets for policy accuracy, false positives, regression tests, and report-quality evaluation
+- Validate remediation evidence before reassessment
+- Keep any execution workflow separate, human-approved, and incapable of bypassing the deterministic policy layer
+
+---
 
 ## Security note
 
-Do not commit `factory/.env`, API keys, connection strings, access tokens, subscription identifiers, or live production configuration. The committed scenarios are intentionally simulated and contain no live credentials.
+Do not commit `.env` files, connection strings, API keys, tokens, subscription identifiers, or live production configuration. The committed scenarios are simulated and contain no live credentials.
